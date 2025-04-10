@@ -23,10 +23,46 @@
 # 2) Clean data (change the date into the right format)
 # 3) Understand differences in the market when its bullish and bearish
 # 4) Stats difference (t-tests maybe anova)
-# 5) pairs plot for visualisation
-# 5) Make Market type a response (try and understand how thing change when the markets are bulish and bearish)
-# 6) 
+# 5) pairs plot for visualization
+# 5) Make Market type a response (try and understand how thing change 
+#    when the markets are bullish and bearish)
+# 6) Predict 
+# 7) Train ML and see if it can produce future outputs 
 
 
+# 1) Load libraries
+
+library(tidyverse)
+library(car)
+library(MASS)
+library(readxl)
+
+# 2) Load data and Clean the data
+
+banknifty <- read_excel("banknifty_data - Copy.xlsx")
+
+# Structure 
+
+str(banknifty$type)
+
+
+# difference between groups open
+
+bank_open <- aov(open ~ type, data = banknifty)
+summary(bank_open) #different
+
+# difference between groups closed 
+
+bank_closed <- aov(close ~ type, data = banknifty)
+summary(bank_closed) #different 
+
+# I suspect all groups are in deep different which is as a result of the the tie value being low 
+
+# Lets try a turkey honest significance test
+
+# where does the difference lie ans is it significant 
+
+#Bank open 
+TukeyHSD(bank_open)
 
 
