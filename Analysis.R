@@ -39,6 +39,8 @@ library(MASS)
 library(readxl)
 library(lubridate)
 library(hms)
+library(xgboost) 
+library(caret)
 
 
 # 2) Load data and Clean the data
@@ -195,4 +197,68 @@ pred_class <- predict(model_1, newdata = banknifty_scaled, type = "class")
 pred_probs <- predict(model_1, newdata = banknifty_scaled, type = "probs")
 
 
+# ML
+# Im going to use ML to predict the price that stock open. I am going to do this because
+# This does a better job predicting categorical variables
+
+# 1) data processing 
+# 2) Split the data into training and testing data (80%/20%)
+# 3) XGBoot model 
+# 4) evaluate the model
+# 5) predict the opening price 
+
+
+# 1) data processing 
+
+ML_Bank_Open <- banknifty %>% 
+  dplyr:: select(-Day,
+                 -weekday, -time, -date)
+
+# Using the model. matrix to create a matrix of just continuous data 
+dummies <- model.matrix(type ~ . - 1, data = ML_Bank_Open)
+
+#Traning the data 
+train_idx <- createDataPartition(ML_Bank_Open$type, p = 0.8, list = FALSE)
+
+#Training and testing
+train_data <- dummies[train_idx, ]
+test_data  <- dummies[-train_idx, ]
+
+train_label <- banknifty$type[train_idx]
+test_label  <- banknifty$type[-train_idx]
+
+
+# Convert to xgb.DMatrix
+dtrain <- xgb.DMatrix(data = train_data, label = as.numeric(train_label) - 1)
+dtest  <- xgb.DMatrix(data = test_data,  label = as.numeric(test_label) - 1)
+
+# Train model
+xgb_model <- xgboost(
+  data = dtrain,
+  objective = "multi:softprob",
+  num_class = length(levels(banknifty$type)),
+  nrounds = 100,
+  eval_metric = "mlogloss",
+  verbose = 0
+)
+
+
+pred_probs <- predict(xgb_model, dtest)
+pred_matrix <- matrix(pred_probs, nrow = length(levels(banknifty$type)), byrow = TRUE)
+pred_classes <- max.col(t(pred_matrix))  # Get predicted class index
+
+# Convert numeric class back to factor
+pred_labels <- factor(pred_classes, labels = levels(banknifty$type))
+confusionMatrix(pred_labels, test_label)
+
+
+y <- 
+dtrain <- xgb.DMatrix(data = train_data, label = y[train_idx])
+dtest  <- xgb.DMatrix(data = test_data,  label = y[-train_idx])
+
+xgb_model <- xgboost(
+  data = dtrain,
+  objective = "reg:squarederror",
+  nrounds = 100
+)
 
